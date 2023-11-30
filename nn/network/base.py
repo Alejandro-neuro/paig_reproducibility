@@ -11,11 +11,12 @@ logger = logging.getLogger("tf")
 root_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..")
 
 OPTIMIZERS = {
-    "adam": tf.optimizers.Adam,
-    "rmsprop": tf.optimizers.RMSprop,
-    "momentum": lambda x: tf.optimizers.SGD(learning_rate=x, momentum=0.9),
-    "sgd": tf.optimizers.SGD
+    "adam": tf.compat.v1.train.AdamOptimizer,
+    "rmsprop": tf.compat.v1.train.RMSPropOptimizer,
+    "momentum": lambda x: tf.compat.v1.train.MomentumOptimizer(x, 0.9),
+    "sgd": tf.compat.v1.train.GradientDescentOptimizer
 }
+
 
 class BaseNet:
 

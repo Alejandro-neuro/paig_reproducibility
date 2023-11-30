@@ -7,21 +7,30 @@ from nn.utils.misc import classes_in_module
 from nn.datasets.iterators import get_iterators
 import runners.run_base
 
-tf.app.flags.DEFINE_string("task", "", "Type of task.")
-tf.app.flags.DEFINE_string("model", "PhysicsNet", "Model to use.")
-tf.app.flags.DEFINE_integer("recurrent_units", 100, "Number of units for each lstm, if using black-box dynamics.")
-tf.app.flags.DEFINE_integer("lstm_layers", 1, "Number of lstm cells to use, if using black-box dynamics")
-tf.app.flags.DEFINE_string("cell_type", "", "Type of pendulum to use.")
-tf.app.flags.DEFINE_string("encoder_type", "conv_encoder", "Type of encoder to use.")
-tf.app.flags.DEFINE_string("decoder_type", "conv_st_decoder", "Type of decoder to use.")
+from silence_tensorflow import silence_tensorflow
+silence_tensorflow()
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 
-tf.app.flags.DEFINE_float("autoencoder_loss", 0.0, "Autoencoder loss weighing.")
-tf.app.flags.DEFINE_bool("alt_vel", False, "Whether to use linear velocity computation.")
-tf.app.flags.DEFINE_bool("color", False, "Whether images are rbg or grayscale.")
-tf.app.flags.DEFINE_integer("datapoints", 0, "How many datapoints from the dataset to use. \
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR) 
+import logging
+tf.get_logger().setLevel(logging.ERROR)
+
+tf.compat.v1.app.flags.DEFINE_string("task", "", "Type of task.")
+tf.compat.v1.app.flags.DEFINE_string("model", "PhysicsNet", "Model to use.")
+tf.compat.v1.app.flags.DEFINE_integer("recurrent_units", 100, "Number of units for each lstm, if using black-box dynamics.")
+tf.compat.v1.app.flags.DEFINE_integer("lstm_layers", 1, "Number of lstm cells to use, if using black-box dynamics")
+tf.compat.v1.app.flags.DEFINE_string("cell_type", "", "Type of pendulum to use.")
+tf.compat.v1.app.flags.DEFINE_string("encoder_type", "conv_encoder", "Type of encoder to use.")
+tf.compat.v1.app.flags.DEFINE_string("decoder_type", "conv_st_decoder", "Type of decoder to use.")
+
+tf.compat.v1.app.flags.DEFINE_float("autoencoder_loss", 0.0, "Autoencoder loss weighing.")
+tf.compat.v1.app.flags.DEFINE_bool("alt_vel", False, "Whether to use linear velocity computation.")
+tf.compat.v1.app.flags.DEFINE_bool("color", False, "Whether images are rbg or grayscale.")
+tf.compat.v1.app.flags.DEFINE_integer("datapoints", 0, "How many datapoints from the dataset to use. \
                                               Useful for measuring data efficiency. default=0 uses all data.")
 
-FLAGS = tf.app.flags.FLAGS
+FLAGS = tf.compat.v1.app.flags.FLAGS
 
 model_classes = classes_in_module(physics_models)
 Model = model_classes[FLAGS.model]
@@ -68,7 +77,7 @@ if __name__ == "__main__":
         data_iterators = get_iterators(
                               os.path.join(
                                   os.path.dirname(os.path.realpath(__file__)), 
-                                  "../data/datasets/%s"%data_file), conv=True, datapoints=FLAGS.datapoints)
+                                  "/content/drive/MyDrive/data/Datasets/%s"%data_file), conv=True, datapoints=FLAGS.datapoints)
         network.get_data(data_iterators)
         network.train(FLAGS.epochs, FLAGS.batch_size, FLAGS.save_every_n_epochs, FLAGS.eval_every_n_epochs,
                     FLAGS.print_interval, FLAGS.debug)

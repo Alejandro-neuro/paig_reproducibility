@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 
-class ode_cell(tf.nn.rnn_cell.BasicRNNCell):
+class ode_cell(tf.compat.v1.nn.rnn_cell.BasicRNNCell):
 
     @property
     def state_size(self):

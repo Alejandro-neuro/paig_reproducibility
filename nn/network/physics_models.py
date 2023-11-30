@@ -2,7 +2,8 @@ import os
 import shutil
 import logging
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 from pprint import pprint
 import inspect
 
@@ -159,7 +160,7 @@ class PhysicsNet(BaseNet):
             #     self.dyn_train_op = self.dyn_optimizer.apply_gradients([gv for gv in gvs if "cell" in gv[1].name])
             #     self.train_op = tf.group(self.train_op, self.dyn_train_op)
 
-    def conv_encoder(self, inp, scope=None, reuse=tf.AUTO_REUSE):
+    def conv_encoder(self, inp, scope=None, reuse=tf.compat.v1.AUTO_REUSE):
         with tf.variable_scope(scope or tf.get_variable_scope(), reuse=reuse):
             with tf.variable_scope("encoder"):
                 rang = tf.range(self.conv_input_shape[0], dtype=tf.float32)
@@ -203,7 +204,7 @@ class PhysicsNet(BaseNet):
                     h = tf.tanh(h)*(self.conv_input_shape[0]/2)+(self.conv_input_shape[0]/2)
                 return h
 
-    def vel_encoder(self, inp, scope=None, reuse=tf.AUTO_REUSE):
+    def vel_encoder(self, inp, scope=None, reuse=tf.compat.v1.AUTO_REUSE):
         with tf.variable_scope(scope or tf.get_variable_scope(), reuse=reuse):
             with tf.variable_scope("init_vel"):
                 if self.alt_vel:
@@ -230,7 +231,7 @@ class PhysicsNet(BaseNet):
                     h = tf.concat(h, axis=1)
         return h
 
-    def conv_st_decoder(self, inp, scope=None, reuse=tf.AUTO_REUSE):
+    def conv_st_decoder(self, inp, scope=None, reuse=tf.compat.v1.AUTO_REUSE):
         with tf.variable_scope(scope or tf.get_variable_scope(), reuse=reuse):
             with tf.variable_scope("decoder"):
 

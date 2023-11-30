@@ -1,5 +1,6 @@
 from six.moves import xrange
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
 def stn(U, theta, out_size, name='SpatialTransformer', **kwargs):
     """Spatial Transformer Layer
