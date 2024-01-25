@@ -82,7 +82,7 @@ if __name__ == "__main__":
         network.train(FLAGS.epochs, FLAGS.batch_size, FLAGS.save_every_n_epochs, FLAGS.eval_every_n_epochs,
                     FLAGS.print_interval, FLAGS.debug)
         
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
     
     network = Model(FLAGS.task, FLAGS.recurrent_units, FLAGS.lstm_layers, cell_type, 
                     test_seq_len, input_steps, pred_steps,
