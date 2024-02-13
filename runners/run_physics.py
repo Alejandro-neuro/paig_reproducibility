@@ -1,6 +1,7 @@
 import os
 import logging
 import inspect
+import numpy as np
 import tensorflow as tf
 from nn.network import physics_models
 from nn.utils.misc import classes_in_module
@@ -10,7 +11,7 @@ import runners.run_base
 from silence_tensorflow import silence_tensorflow
 silence_tensorflow()
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR) 
 import logging
@@ -60,10 +61,19 @@ data_file, test_data_file, cell_type, seq_len, test_seq_len, input_steps, pred_s
         "mnist_spring_color/color_mnist_spring_vx8_vy8_sl12_r2_k2_e12.npz", 
         "mnist_spring_color/color_mnist_spring_vx8_vy8_sl30_r2_k2_e12.npz", 
         "spring_ode_cell",
-        12, 30, 3, 7, 64*64)
+        12, 30, 3, 7, 64*64),
+    "pendulum": (
+        "spring_color/color_spring_vx8_vy8_sl12_r2_k4_e6.npz",
+        "spring_color/color_spring_vx8_vy8_sl30_r2_k4_e6.npz",
+        "pendulum_cell",
+        12, 30, 4, 6, 32*32),
 }[FLAGS.task]
 
 if __name__ == "__main__":
+    # data = np.load('../data/datasets/spring_color/color_spring_vx8_vy8_sl12_r2_k4_e6.npz')
+    # print(data['valid_x'].shape)
+
+
     if not FLAGS.test_mode:
         network = Model(FLAGS.task, FLAGS.recurrent_units, FLAGS.lstm_layers, cell_type, 
                         seq_len, input_steps, pred_steps,
@@ -77,7 +87,7 @@ if __name__ == "__main__":
         data_iterators = get_iterators(
                               os.path.join(
                                   os.path.dirname(os.path.realpath(__file__)), 
-                                  "/content/drive/MyDrive/data/Datasets/%s"%data_file), conv=True, datapoints=FLAGS.datapoints)
+                                  "../data/datasets/%s"%data_file), conv=True, datapoints=FLAGS.datapoints)
         network.get_data(data_iterators)
         network.train(FLAGS.epochs, FLAGS.batch_size, FLAGS.save_every_n_epochs, FLAGS.eval_every_n_epochs,
                     FLAGS.print_interval, FLAGS.debug)

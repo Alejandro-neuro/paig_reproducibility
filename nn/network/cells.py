@@ -14,6 +14,29 @@ class ode_cell(tf.compat.v1.nn.rnn_cell.BasicRNNCell):
         return x_0, v_0
 
 
+class pendulum_cell(ode_cell):
+    def build(self, inputs_shape):
+        if inputs_shape[-1] is None:
+            raise ValueError("Expected inputs.shape[-1] to be known, saw shape: %s"
+                                % str(inputs_shape))
+
+        input_depth = inputs_shape[-1]
+        h_depth = self._num_units
+        assert h_depth == input_depth
+
+        self.dt = self.add_variable("dt_x", shape=[], initializer=tf.constant_initializer(0.3), trainable=False)
+        self.length = self.add_variable("l", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
+        self.mass = self.add_variable("m", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
+        self.built = True
+
+    def call(self, poss, vels):
+        for i in range(5):
+            F = -self.mass * 10 * tf.sin(poss)
+            vels = vels + self.dt / 5 * F / self.length  # calculate the angular velocity
+            poss = poss + self.dt / 5 * vels
+        return poss, vels
+
+
 class bouncing_ode_cell(ode_cell):
     """ Assumes there are 2 objects """
 
