@@ -7,6 +7,72 @@ from itertools import combinations
 from nn.utils.viz import gallery
 from nn.utils.misc import rgb2gray
 
+
+def generate_pendulum_dataset(dest,
+                              train_set_size,
+                              valid_set_size,
+                              test_set_size,
+                              seq_len,
+                              img_size,
+                              radius=3,
+                              length=20,
+                              max_theta=np.pi/6,
+                              ode_steps=10,
+                              dt=0.3,
+                              mass=5):
+    from skimage.draw import disk  # seems to be "disk" now, not "circle"
+    from skimage.transform import resize
+
+    def generate_sequence():
+        sequence = []
+        theta = np.random.uniform(-max_theta, max_theta)
+        vel = 0
+        for _ in range(seq_len):
+            frame = np.zeros((img_size, img_size, 3))
+            # assume a pendulum attached to the middle at the top
+            x = length * np.sin(theta) + img_size // 2
+            y = length * np.cos(theta)
+
+            rr, cc = disk((y, x), radius)
+            frame[rr, cc, :] = (255, 0, 0)
+            frame = frame.astype(np.uint8)
+
+            sequence.append(frame)
+
+            for _ in range(ode_steps):
+                F = -mass * 10 * np.sin(theta)
+                vel = vel + dt / ode_steps * F / length
+                theta = theta + dt / ode_steps * vel
+
+        return sequence
+
+    sequences = []
+    for i in range(train_set_size + valid_set_size + test_set_size):
+        if i % 100 == 0:
+            print(i)
+        sequences.append(generate_sequence())
+    sequences = np.array(sequences, dtype=np.uint8)
+
+    np.savez_compressed(dest,
+                        train_x=sequences[:train_set_size],
+                        valid_x=sequences[train_set_size:train_set_size+valid_set_size],
+                        test_x=sequences[train_set_size+valid_set_size:])
+
+    result = gallery(np.concatenate(sequences[:10] / 255), ncols=sequences.shape[1])
+
+    norm = plt.Normalize(0.0, 1.0)
+    fig, ax = plt.subplots(figsize=(sequences.shape[1], 10))
+    ax.imshow(np.squeeze(result), interpolation='nearest', cmap=cm.Greys_r, norm=norm)
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+    fig.tight_layout()
+    fig.savefig(dest.split(".")[0] + "_samples.jpg")
+
+
+generate_pendulum_dataset('../../data/datasets/pendulum/pendulum_sl30.npz',
+                          10000, 1000, 1000, 30, 32)
+
+
 def generate_bouncing_ball_dataset(dest,
                                    train_set_size,
                                    valid_set_size,
