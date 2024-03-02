@@ -25,15 +25,15 @@ class pendulum_cell(ode_cell):
         assert h_depth == input_depth
 
         self.dt = self.add_variable("dt_x", shape=[], initializer=tf.constant_initializer(0.3), trainable=False)
-        self.length = self.add_variable("l", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
-        self.mass = self.add_variable("m", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
+        self.length = self.add_variable("l", shape=[], initializer=tf.constant_initializer(10.0), trainable=True)
+        self.mass = self.add_variable("m", shape=[], initializer=tf.constant_initializer(5.0), trainable=True)
         self.built = True
 
     def call(self, poss, vels):
-        for i in range(5):
+        for i in range(10):
             F = -self.mass * 10 * tf.sin(poss)
-            vels = vels + self.dt / 5 * F / self.length  # calculate the angular velocity
-            poss = poss + self.dt / 5 * vels
+            vels = vels + self.dt / 10 * F / self.length  # calculate the angular velocity
+            poss = poss + self.dt / 10 * vels
         return poss, vels
 
 

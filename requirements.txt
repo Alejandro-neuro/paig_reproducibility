@@ -1,4 +1,4 @@
-tensorflow==2.14.0
+tensorflow==2.15.0
 Pillow
 requests
 scipy
@@ -7,3 +7,5 @@ matplotlib
 tinydb
 pytest
 scikit-image
+silence_tensorflow
+moviepy

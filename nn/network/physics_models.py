@@ -191,7 +191,7 @@ class PhysicsNet(BaseNet):
                     else:
                         h = tf.layers.dense(h, 1, activation=None)
                     h = tf.concat(tf.split(h, self.n_objs, 0), axis=1)
-                    h = tf.tanh(h)*(self.conv_input_shape[0]/2)+(self.conv_input_shape[0]/2)
+                    # h = tf.tanh(h)*(self.conv_input_shape[0]/2)+(self.conv_input_shape[0]/2)
                 else:
                     h = inp
                     h = unet(h, 16, self.n_objs, upsamp=True)
@@ -209,7 +209,7 @@ class PhysicsNet(BaseNet):
                     h = tf.layers.dense(h, 200, activation=tf.nn.relu)
                     h = tf.layers.dense(h, 2, activation=None)
                     h = tf.concat(tf.split(h, self.n_objs, 0), axis=1)
-                    h = tf.tanh(h)*(self.conv_input_shape[0]/2)+(self.conv_input_shape[0]/2)
+                    # h = tf.tanh(h)*(self.conv_input_shape[0]/2)+(self.conv_input_shape[0]/2)
                 return h
 
     def vel_encoder(self, inp, scope=None, reuse=tf.compat.v1.AUTO_REUSE):
@@ -392,6 +392,15 @@ class PhysicsNet(BaseNet):
             ax.get_yaxis().set_visible(False)
             fig.tight_layout()
             fig.savefig(os.path.join(self.save_dir, "example%d.jpg"%i))
+
+            if hasattr(self, 'pos_vel_seq'):
+                pos = pos_vel_seq[i, :, 0]
+
+                fig, ax = plt.subplots()
+                ax.plot(pos)
+                ax.set_xlabel('time')
+                ax.set_ylabel('angle')
+                fig.savefig(os.path.join(self.save_dir, f"angle_{i}.jpg"))
 
         # Make a gif from the sequences
         bordered_output_seq = 0.5*np.ones([batch_size, self.seq_len, 

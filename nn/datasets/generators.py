@@ -15,8 +15,8 @@ def generate_pendulum_dataset(dest,
                               seq_len,
                               img_size,
                               radius=3,
-                              length=20,
-                              max_theta=np.pi/6,
+                              length=10,
+                              max_theta=3*np.pi/4,
                               ode_steps=10,
                               dt=0.3,
                               mass=5):
@@ -29,9 +29,8 @@ def generate_pendulum_dataset(dest,
         vel = 0
         for _ in range(seq_len):
             frame = np.zeros((img_size, img_size, 3))
-            # assume a pendulum attached to the middle at the top
             x = length * np.sin(theta) + img_size // 2
-            y = length * np.cos(theta)
+            y = length * np.cos(theta) + img_size // 2
 
             rr, cc = disk((y, x), radius)
             frame[rr, cc, :] = (255, 0, 0)
