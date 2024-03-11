@@ -1,6 +1,6 @@
 data/
 .idea/
-runners/out/
+runners/out*/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

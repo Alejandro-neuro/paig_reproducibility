@@ -102,6 +102,8 @@ class PhysicsNet(BaseNet):
         self.extra_valid_fns.append((self.visualize_sequence,[],{}))
         self.extra_test_fns.append((self.visualize_sequence,[],{}))
 
+        self.length_history = []
+
     def get_batch(self, batch_size, iterator):
         batch_x, _ = iterator.next_batch(batch_size)
         batch_len = batch_x.shape[1]
@@ -306,7 +308,7 @@ class PhysicsNet(BaseNet):
         with tf.variable_scope("net") as tvs:
             lstms = [tf.nn.rnn_cell.LSTMCell(self.recurrent_units) for i in range(self.lstm_layers)]
             states = [lstm.zero_state(tf.shape(self.input)[0], dtype=tf.float32) for lstm in lstms]
-            rollout_cell = self.cell(self.coord_units//2)
+            self.rollout_cell = self.cell(self.coord_units//2)
 
             # Encode all the input and train frames
             h = tf.reshape(self.input[:,:self.input_steps+self.pred_steps], [-1]+self.input_shape)
@@ -333,7 +335,7 @@ class PhysicsNet(BaseNet):
             # rollout ODE and decoder
             for t in range(self.pred_steps+self.extrap_steps):
                 # rollout
-                pos, vel = rollout_cell(pos, vel)
+                pos, vel = self.rollout_cell(pos, vel)
 
                 # decode
                 out = self.decoder(pos, scope=tvs)

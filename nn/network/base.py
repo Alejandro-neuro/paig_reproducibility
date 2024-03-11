@@ -4,6 +4,7 @@ import shutil
 import logging
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 from nn.utils.misc import log_metrics, zipdir
 
@@ -138,6 +139,8 @@ class BaseNet:
 
         step = 0
 
+        lengths = []
+
         # Run validation once before starting training
         if not debug and epochs > 0:
             valid_metrics_results = self.eval(batch_size, type='valid')
@@ -152,6 +155,9 @@ class BaseNet:
                 results, _ = self.sess.run(
                     [self.train_metrics, self.train_op], feed_dict=feed_dict)
 
+                length = self.sess.run(self.rollout_cell.length)
+                lengths.append(length)
+
                 self.run_extra_fns("train")
 
                 if step % print_interval == 0:
@@ -164,6 +170,10 @@ class BaseNet:
 
             if ep % save_every_n_epochs == 0:
                 self.saver.save(self.sess, os.path.join(self.save_dir, "model.ckpt"))
+
+                with open(os.path.join(self.save_dir, "lengths.txt"), "w") as f:
+                    f.write("\n".join([str(length) for length in lengths]))
+
             
         test_metrics_results = self.eval(batch_size, type='test')
         log_metrics(logger, "test - epoch=%s"%epochs, test_metrics_results)
