@@ -139,8 +139,9 @@ class BaseNet:
 
         step = 0
 
-        lengths = []
-        masses = []
+        params_tracker = {}
+        for param in self.rollout_cell.trainable_variables:
+            params_tracker[param.name] = []
 
         # Run validation once before starting training
         if not debug and epochs > 0:
@@ -156,10 +157,9 @@ class BaseNet:
                 results, _ = self.sess.run(
                     [self.train_metrics, self.train_op], feed_dict=feed_dict)
 
-                length = self.sess.run(self.rollout_cell.length)
-                mass = self.sess.run(self.rollout_cell.mass)
-                lengths.append(length)
-                masses.append(mass)
+                for param in self.rollout_cell.trainable_variables:
+                    evaluated = self.sess.run(param)
+                    params_tracker[param.name].append(evaluated)
 
                 self.run_extra_fns("train")
 
@@ -174,11 +174,10 @@ class BaseNet:
             if ep % save_every_n_epochs == 0:
                 self.saver.save(self.sess, os.path.join(self.save_dir, "model.ckpt"))
 
-                with open(os.path.join(self.save_dir, "lengths.txt"), "w") as f:
-                    f.write("\n".join([str(length) for length in lengths]))
-
-                with open(os.path.join(self.save_dir, "masses.txt"), "w") as f:
-                    f.write("\n".join([str(mass) for mass in masses]))
+                for param in self.rollout_cell.trainable_variables:
+                    filename = param.name.split('/')[-1].split(':')[0]
+                    with open(os.path.join(self.save_dir, f"{filename}.txt"), "w") as f:
+                        f.write("\n".join([str(value) for value in params_tracker[param.name]]))
 
             
         test_metrics_results = self.eval(batch_size, type='test')
