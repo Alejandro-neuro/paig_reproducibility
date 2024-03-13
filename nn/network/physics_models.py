@@ -106,8 +106,7 @@ class PhysicsNet(BaseNet):
 
     def get_batch(self, batch_size, iterator):
         batch_x, _ = iterator.next_batch(batch_size)
-        batch_len = batch_x.shape[1]
-        feed_dict = {self.input: batch_x}
+        feed_dict = {self.input: batch_x['frames']}
         return feed_dict, (batch_x, None)
 
     def compute_loss(self):
@@ -367,23 +366,23 @@ class PhysicsNet(BaseNet):
         recons_seq = res[1]
         if hasattr(self, 'pos_vel_seq'):
             pos_vel_seq = res[2]
-        output_seq = np.concatenate([batch_x[:,:self.input_steps], output_seq], axis=1)
+        output_seq = np.concatenate([batch_x['frames'][:,:self.input_steps], output_seq], axis=1)
         recons_seq = np.concatenate([recons_seq, np.zeros((batch_size, self.extrap_steps)+recons_seq.shape[2:])], axis=1)
 
         # Plot a grid with prediction sequences
-        for i in range(batch_x.shape[0]):
+        for i in range(batch_x['frames'].shape[0]):
             #if hasattr(self, 'pos_vel_seq'):
             #    if i == 0 or i == 1:
             #        logger.info(pos_vel_seq[i])
 
-            to_concat = [output_seq[i],batch_x[i],recons_seq[i]]
+            to_concat = [output_seq[i],batch_x['frames'][i],recons_seq[i]]
             total_seq = np.concatenate(to_concat, axis=0) 
 
             total_seq = total_seq.reshape([total_seq.shape[0], 
                                            self.input_shape[0], 
                                            self.input_shape[1], self.conv_ch])
 
-            result = gallery(total_seq, ncols=batch_x.shape[1])
+            result = gallery(total_seq, ncols=batch_x['frames'].shape[1])
 
             norm = plt.Normalize(0.0, 1.0)
 
@@ -397,9 +396,12 @@ class PhysicsNet(BaseNet):
 
             if hasattr(self, 'pos_vel_seq'):
                 pos = pos_vel_seq[i, :, 0]
+                actual_pos = batch_x['thetas'][i, self.input_steps-1:]
 
                 fig, ax = plt.subplots()
-                ax.plot(pos)
+                ax.plot(pos, label='Predicted')
+                ax.plot(actual_pos, label='Actual')
+                ax.legend()
                 ax.set_xlabel('time')
                 ax.set_ylabel('angle')
                 fig.savefig(os.path.join(self.save_dir, f"angle_{i}.jpg"))
@@ -410,14 +412,14 @@ class PhysicsNet(BaseNet):
         bordered_batch_x = 0.5*np.ones([batch_size, self.seq_len, 
                                           self.conv_input_shape[0]+2, self.conv_input_shape[1]+2, 3])
         output_seq = output_seq.reshape([batch_size, self.seq_len]+self.input_shape)
-        batch_x = batch_x.reshape([batch_size, self.seq_len]+self.input_shape)
+        batch_x['frames'] = batch_x['frames'].reshape([batch_size, self.seq_len]+self.input_shape)
         bordered_output_seq[:,:,1:-1,1:-1] = output_seq
-        bordered_batch_x[:,:,1:-1,1:-1] = batch_x
+        bordered_batch_x[:,:,1:-1,1:-1] = batch_x['frames']
         output_seq = bordered_output_seq
-        batch_x = bordered_batch_x
+        batch_x['frames'] = bordered_batch_x
         output_seq = np.concatenate(np.split(output_seq, batch_size, 0), axis=-2).squeeze()
-        batch_x = np.concatenate(np.split(batch_x, batch_size, 0), axis=-2).squeeze()
-        frames = np.concatenate([output_seq, batch_x], axis=1)
+        batch_x['frames'] = np.concatenate(np.split(batch_x['frames'], batch_size, 0), axis=-2).squeeze()
+        frames = np.concatenate([output_seq, batch_x['frames']], axis=1)
 
         gif(os.path.join(self.save_dir, "animation%d.gif"%i), 
             frames*255, fps=7, scale=3)

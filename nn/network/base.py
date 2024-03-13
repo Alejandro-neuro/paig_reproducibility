@@ -113,9 +113,9 @@ class BaseNet:
     def get_batch(self, batch_size, iterator):
         batch_x, batch_y = iterator.next_batch(batch_size)
         if batch_y is None:
-            feed_dict = {self.input:batch_x}
+            feed_dict = {self.input:batch_x['frames']}
         else:
-            feed_dict = {self.input:batch_x, self.target:batch_y}
+            feed_dict = {self.input:batch_x['frames'], self.target:batch_y['frames']}
         return feed_dict, (batch_x, batch_y)
 
     def add_train_logger(self):
@@ -189,8 +189,8 @@ class BaseNet:
         eval_iterator.reset_epoch()
         
         while eval_iterator.get_epoch() < 1:
-            if eval_iterator.X.shape[0] < 100:
-                batch_size = eval_iterator.X.shape[0]
+            if eval_iterator.num_examples < 100:
+                batch_size = eval_iterator.num_examples
             feed_dict, _ = self.get_batch(batch_size, eval_iterator)
             fetches = {k:v for k, v in self.eval_metrics.items()}
             fetches["output"] = self.output

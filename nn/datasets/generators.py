@@ -27,7 +27,9 @@ def generate_pendulum_dataset(dest,
         sequence = []
         theta = np.random.uniform(-max_theta, max_theta)
         vel = 0
+        angles = []
         for _ in range(seq_len):
+            angles.append(theta)
             frame = np.zeros((img_size, img_size, 3))
             x = length * np.sin(theta) + img_size // 2
             y = length * np.cos(theta) + img_size // 2
@@ -43,19 +45,23 @@ def generate_pendulum_dataset(dest,
                 vel = vel + dt / ode_steps * F / length
                 theta = theta + dt / ode_steps * vel
 
-        return sequence
+        return sequence, angles
 
     sequences = []
+    thetas = []
     for i in range(train_set_size + valid_set_size + test_set_size):
         if i % 100 == 0:
             print(i)
-        sequences.append(generate_sequence())
+        seq, ang = generate_sequence()
+        sequences.append(seq)
+        thetas.append(ang)
     sequences = np.array(sequences, dtype=np.uint8)
+    thetas = np.array(thetas, dtype=np.float32)
 
     np.savez_compressed(dest,
-                        train_x=sequences[:train_set_size],
-                        valid_x=sequences[train_set_size:train_set_size+valid_set_size],
-                        test_x=sequences[train_set_size+valid_set_size:])
+                        train_x={'frames': sequences[:train_set_size], 'thetas': thetas[:train_set_size]},
+                        valid_x={'frames': sequences[train_set_size:train_set_size+valid_set_size], 'thetas': thetas[train_set_size:train_set_size+valid_set_size]},
+                        test_x={'frames': sequences[train_set_size+valid_set_size:], 'thetas': thetas[train_set_size+valid_set_size:]})
 
     result = gallery(np.concatenate(sequences[:10] / 255), ncols=sequences.shape[1])
 
