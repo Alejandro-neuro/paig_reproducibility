@@ -396,7 +396,7 @@ class PhysicsNet(BaseNet):
 
             if hasattr(self, 'pos_vel_seq'):
                 pos = pos_vel_seq[i, :, 0]
-                actual_pos = batch_x['thetas'][i, self.input_steps-1:]
+                actual_pos = batch_x['pos'][i, self.input_steps-1:]
 
                 fig, ax = plt.subplots()
                 ax.plot(pos, label='Predicted')
@@ -405,6 +405,17 @@ class PhysicsNet(BaseNet):
                 ax.set_xlabel('time')
                 ax.set_ylabel('angle')
                 fig.savefig(os.path.join(self.save_dir, f"angle_{i}.jpg"))
+
+                pos = pos_vel_seq[i, :, 1]
+                actual_pos = batch_x['vel'][i, self.input_steps - 1:]
+
+                fig, ax = plt.subplots()
+                ax.plot(pos, label='Predicted')
+                ax.plot(actual_pos, label='Actual')
+                ax.legend()
+                ax.set_xlabel('time')
+                ax.set_ylabel('velocity')
+                fig.savefig(os.path.join(self.save_dir, f"velocity_{i}.jpg"))
 
         # Make a gif from the sequences
         bordered_output_seq = 0.5*np.ones([batch_size, self.seq_len, 

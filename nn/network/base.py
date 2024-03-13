@@ -140,6 +140,7 @@ class BaseNet:
         step = 0
 
         lengths = []
+        masses = []
 
         # Run validation once before starting training
         if not debug and epochs > 0:
@@ -156,7 +157,9 @@ class BaseNet:
                     [self.train_metrics, self.train_op], feed_dict=feed_dict)
 
                 length = self.sess.run(self.rollout_cell.length)
+                mass = self.sess.run(self.rollout_cell.mass)
                 lengths.append(length)
+                masses.append(mass)
 
                 self.run_extra_fns("train")
 
@@ -173,6 +176,9 @@ class BaseNet:
 
                 with open(os.path.join(self.save_dir, "lengths.txt"), "w") as f:
                     f.write("\n".join([str(length) for length in lengths]))
+
+                with open(os.path.join(self.save_dir, "masses.txt"), "w") as f:
+                    f.write("\n".join([str(mass) for mass in masses]))
 
             
         test_metrics_results = self.eval(batch_size, type='test')
