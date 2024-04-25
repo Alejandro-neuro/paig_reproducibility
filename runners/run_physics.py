@@ -67,6 +67,11 @@ data_file, test_data_file, cell_type, seq_len, test_seq_len, input_steps, pred_s
         "pendulum/pendulum_sl30.npz",
         "pendulum_cell",
         12, 30, 4, 6, 32*32),
+    "pendulum_scale": (
+        "pendulum_scale/pendulum_scale_sl12.npz",
+        "pendulum_scale/pendulum_scale_sl30.npz",
+        "pendulum_cell",
+        12, 30, 4, 6, 32*32)
 }[FLAGS.task]
 
 if __name__ == "__main__":

@@ -84,8 +84,85 @@ def generate_pendulum_dataset(dest,
     fig.tight_layout()
     fig.savefig(dest.split(".")[0] + "_samples.jpg")
 
+def generate_pendulum_scale_dataset(dest,
+                              train_set_size,
+                              valid_set_size,
+                              test_set_size,
+                              seq_len,
+                              img_size,
+                              radius=3,
+                              length=10,
+                              max_theta=3*np.pi/4,
+                              ode_steps=10,
+                              dt=0.3,
+                              mass=5):
+    from skimage.draw import disk  # seems to be "disk" now, not "circle"
+    from skimage.transform import resize
 
-generate_pendulum_dataset('../../data/datasets/pendulum/pendulum_sl30.npz',
+    def generate_sequence():
+        sequence = []
+        theta = np.random.uniform(-max_theta, max_theta)
+        vel = 0
+        thetas = []
+        velocities = []
+        for _ in range(seq_len):
+            velocities.append(vel)
+            frame = np.zeros((img_size, img_size, 3))
+            x = length * np.sin(theta) + img_size // 2
+            thetas.append(x // radius)
+
+            rr, cc = disk((img_size // 2, img_size // 2), x // radius)
+            frame[rr, cc, :] = (255, 0, 0)
+            frame = frame.astype(np.uint8)
+
+            sequence.append(frame)
+
+            for _ in range(ode_steps):
+                F = -mass * 10 * np.sin(theta)
+                vel = vel + dt / ode_steps * F / length
+                theta = theta + dt / ode_steps * vel
+
+        return sequence, thetas, velocities
+
+    sequences = []
+    poss = []
+    vels = []
+    for i in range(train_set_size + valid_set_size + test_set_size):
+        if i % 100 == 0:
+            print(i)
+        seq, ang, vel = generate_sequence()
+        sequences.append(seq)
+        poss.append(ang)
+        vels.append(vel)
+    sequences = np.array(sequences, dtype=np.uint8)
+    poss = np.array(poss, dtype=np.float32)
+    vels = np.array(vels, dtype=np.float32)
+
+    np.savez_compressed(dest,
+                        train_x={'frames': sequences[:train_set_size],
+                                 'pos': poss[:train_set_size],
+                                 'vel': vels[:train_set_size]},
+                        valid_x={'frames': sequences[train_set_size:train_set_size+valid_set_size],
+                                 'pos': poss[train_set_size:train_set_size+valid_set_size],
+                                 'vel': vels[train_set_size:train_set_size+valid_set_size]},
+                        test_x={'frames': sequences[train_set_size+valid_set_size:],
+                                'pos': poss[train_set_size+valid_set_size:],
+                                'vel': vels[train_set_size+valid_set_size:]})
+
+    result = gallery(np.concatenate(sequences[:10] / 255), ncols=sequences.shape[1])
+
+    norm = plt.Normalize(0.0, 1.0)
+    fig, ax = plt.subplots(figsize=(sequences.shape[1], 10))
+    ax.imshow(np.squeeze(result), interpolation='nearest', cmap=cm.Greys_r, norm=norm)
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+    fig.tight_layout()
+    fig.savefig(dest.split(".")[0] + "_samples.jpg")
+
+
+
+
+generate_pendulum_scale_dataset('../../data/datasets/pendulum_scale/pendulum_scale_sl30.npz',
                           10000, 1000, 1000, 30, 32)
 
 
@@ -121,7 +198,7 @@ def generate_bouncing_ball_dataset(dest,
         trajectories.append(generate_trajectory(seq_len))
     trajectories = np.array(trajectories)
 
-    np.savez_compressed(dest, 
+    np.savez_compressed(dest,
                         train_x=trajectories[:train_set_size],
                         valid_x=trajectories[train_set_size:train_set_size+valid_set_size],
                         test_x=trajectories[train_set_size+valid_set_size:])
@@ -134,13 +211,13 @@ def compute_wall_collision(pos, vel, radius, img_size):
         pos[1] = -(pos[1]-radius)+radius
     if pos[1]+radius >= img_size[1]:
         vel[1] = -vel[1]
-        pos[1] = img_size[1]-(pos[1]+radius-img_size[1])-radius  
+        pos[1] = img_size[1]-(pos[1]+radius-img_size[1])-radius
     if pos[0]-radius <= 0:
         vel[0] = -vel[0]
         pos[0] = -(pos[0]-radius)+radius
     if pos[0]+radius >= img_size[0]:
         vel[0] = -vel[0]
-        pos[0] = img_size[0]-(pos[0]+radius-img_size[0])-radius 
+        pos[0] = img_size[0]-(pos[0]+radius-img_size[0])-radius
     return pos, vel
 
 
@@ -148,7 +225,7 @@ def verify_wall_collision(pos, vel, radius, img_size):
     if pos[1]-radius <= 0:
         return True
     if pos[1]+radius >= img_size[1]:
-        return True 
+        return True
     if pos[0]-radius <= 0:
         return True
     if pos[0]+radius >= img_size[0]:
@@ -200,10 +277,10 @@ def generate_falling_ball_dataset(dest,
             # rollout physics
             for _ in range(ode_steps):
                 vel[1] = vel[1] + dt/ode_steps*g
-                pos[1] = pos[1] + dt/ode_steps*vel[1]    
+                pos[1] = pos[1] + dt/ode_steps*vel[1]
 
         return seq
-    
+
     sequences = []
     for i in range(train_set_size+valid_set_size+test_set_size):
         if i % 100 == 0:
@@ -211,7 +288,7 @@ def generate_falling_ball_dataset(dest,
         sequences.append(generate_sequence())
     sequences = np.array(sequences, dtype=np.uint8)
 
-    np.savez_compressed(dest, 
+    np.savez_compressed(dest,
                         train_x=sequences[:train_set_size],
                         valid_x=sequences[train_set_size:train_set_size+valid_set_size],
                         test_x=sequences[train_set_size+valid_set_size:])
@@ -265,7 +342,7 @@ def generate_falling_bouncing_ball_dataset(dest,
         else:
             pos[1] = radius + (img_size[1]-2*radius)/2*pos[1]
         angle = np.random.rand()*2*np.pi
-        vel = np.array([np.cos(angle)*vx0_max, 
+        vel = np.array([np.cos(angle)*vx0_max,
                         np.sin(angle)*vy0_max])
 
         if cifar_background:
@@ -297,7 +374,7 @@ def generate_falling_bouncing_ball_dataset(dest,
                 # verify wall collisions
                 pos, vel = compute_wall_collision(pos, vel, radius, img_size)
         return seq
-    
+
     sequences = []
     for i in range(train_set_size+valid_set_size+test_set_size):
         if i % 100 == 0:
@@ -305,7 +382,7 @@ def generate_falling_bouncing_ball_dataset(dest,
         sequences.append(generate_sequence())
     sequences = np.array(sequences, dtype=np.uint8)
 
-    np.savez_compressed(dest, 
+    np.savez_compressed(dest,
                         train_x=sequences[:train_set_size],
                         valid_x=sequences[train_set_size:train_set_size+valid_set_size],
                         test_x=sequences[train_set_size+valid_set_size:])
@@ -393,9 +470,9 @@ def generate_spring_balls_dataset(dest,
                 for j, pos in enumerate(poss):
                     rr, cc = circle(int(pos[1]*scale), int(pos[0]*scale), radius*scale, scaled_img_size)
                     if color:
-                        frame[rr, cc, 2-j] = 1.0 
+                        frame[rr, cc, 2-j] = 1.0
                     else:
-                        frame[rr, cc, 0] = 1.0 
+                        frame[rr, cc, 0] = 1.0
 
                 frame = resize(frame, img_size, anti_aliasing=True)
                 frame = (frame*255).astype(np.uint8)
@@ -421,7 +498,7 @@ def generate_spring_balls_dataset(dest,
                     break
 
         return seq
-    
+
     sequences = []
     for i in range(train_set_size+valid_set_size+test_set_size):
         if i % 100 == 0:
@@ -429,7 +506,7 @@ def generate_spring_balls_dataset(dest,
         sequences.append(generate_sequence())
     sequences = np.array(sequences, dtype=np.uint8)
 
-    np.savez_compressed(dest, 
+    np.savez_compressed(dest,
                         train_x=sequences[:train_set_size],
                         valid_x=sequences[train_set_size:train_set_size+valid_set_size],
                         test_x=sequences[train_set_size+valid_set_size:])
@@ -471,13 +548,13 @@ def generate_spring_mnist_dataset(dest,
 
     scale = 5
     if img_size is None:
-        img_size = [32,32]    
+        img_size = [32,32]
     scaled_img_size = [img_size[0]*scale, img_size[1]*scale]
 
     if cifar_background:
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
         cifar_img = x_train[1]
-        
+
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
     digits = x_train[0:2, 3:-3, 3:-3]/255
     digits = [resize(d, [22*scale, 22*scale]) for d in digits]
@@ -530,21 +607,21 @@ def generate_spring_mnist_dataset(dest,
                                              [max(0, (radius-pos[0])*scale), min(2*radius*scale, scaled_img_size[0]-(pos[0]-radius)*scale)]])
                     frame_coords = np.round(frame_coords).astype(np.int32)
                     digit_coords = np.round(digit_coords).astype(np.int32)
-                    
-                    digit_slice = digits[j][digit_coords[0,0]:digit_coords[0,1], 
+
+                    digit_slice = digits[j][digit_coords[0,0]:digit_coords[0,1],
                                             digit_coords[1,0]:digit_coords[1,1]]
                     if color:
                         for l in range(3):
-                            frame_slice = frame[frame_coords[0,0]:frame_coords[0,1], 
+                            frame_slice = frame[frame_coords[0,0]:frame_coords[0,1],
                                                 frame_coords[1,0]:frame_coords[1,1], l]
                             c = 1.0 if l == j else 0.0
-                            frame[frame_coords[0,0]:frame_coords[0,1], 
+                            frame[frame_coords[0,0]:frame_coords[0,1],
                                   frame_coords[1,0]:frame_coords[1,1], l] = digit_slice*c + (1-digit_slice)*frame_slice
 
                     else:
-                        frame_slice = frame[frame_coords[0,0]:frame_coords[0,1], 
+                        frame_slice = frame[frame_coords[0,0]:frame_coords[0,1],
                                             frame_coords[1,0]:frame_coords[1,1], 0]
-                        frame[frame_coords[0,0]:frame_coords[0,1], 
+                        frame[frame_coords[0,0]:frame_coords[0,1],
                               frame_coords[1,0]:frame_coords[1,1], 0] = digit_slice + (1-digit_slice)*frame_slice
 
                 frame = resize(frame, img_size, anti_aliasing=True)
@@ -571,7 +648,7 @@ def generate_spring_mnist_dataset(dest,
                     break
 
         return seq
-    
+
     sequences = []
     for i in range(train_set_size+valid_set_size+test_set_size):
         if i % 100 == 0:
@@ -579,7 +656,7 @@ def generate_spring_mnist_dataset(dest,
         sequences.append(generate_sequence())
     sequences = np.array(sequences, dtype=np.uint8)
 
-    np.savez_compressed(dest, 
+    np.savez_compressed(dest,
                         train_x=sequences[:train_set_size],
                         valid_x=sequences[train_set_size:train_set_size+valid_set_size],
                         test_x=sequences[train_set_size+valid_set_size:])
@@ -644,7 +721,7 @@ def generate_3_body_problem_dataset(dest,
             r = (np.random.rand()/2+0.75)*img_size[0]/4
             poss = [[np.cos(angle)*r+cm_pos[0], np.sin(angle)*r+cm_pos[1]] for angle in angles]
             poss = np.array(poss)
-            
+
             #angles = np.random.rand(3)*2*np.pi
             #vels = [[np.cos(angle)*vx0_max, np.sin(angle)*vy0_max] for angle in angles]
             #vels = np.array(vels)
@@ -672,9 +749,9 @@ def generate_3_body_problem_dataset(dest,
                 for j, pos in enumerate(poss):
                     rr, cc = circle(int(pos[1]*scale), int(pos[0]*scale), radius*scale, scaled_img_size)
                     if color:
-                        frame[rr, cc, 2-j] = 1.0 
+                        frame[rr, cc, 2-j] = 1.0
                     else:
-                        frame[rr, cc, 0] = 1.0 
+                        frame[rr, cc, 0] = 1.0
 
                 frame = resize(frame, img_size, anti_aliasing=True)
                 frame = (frame*255).astype(np.uint8)
@@ -709,7 +786,7 @@ def generate_3_body_problem_dataset(dest,
                     break
 
         return seq
-    
+
     sequences = []
     for i in range(train_set_size+valid_set_size+test_set_size):
         if i % 100 == 0:
@@ -717,7 +794,7 @@ def generate_3_body_problem_dataset(dest,
         sequences.append(generate_sequence())
     sequences = np.array(sequences, dtype=np.uint8)
 
-    np.savez_compressed(dest, 
+    np.savez_compressed(dest,
                         train_x=sequences[:train_set_size],
                         valid_x=sequences[train_set_size:train_set_size+valid_set_size],
                         test_x=sequences[train_set_size+valid_set_size:])

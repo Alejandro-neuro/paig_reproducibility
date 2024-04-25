@@ -37,6 +37,7 @@ COORD_UNITS = {
     "3bp_color": 12,
     "mnist_spring_color": 8,
     "pendulum": 2,
+    'pendulum_scale': 2,
 }
 
 class PhysicsNet(BaseNet):
@@ -94,7 +95,7 @@ class PhysicsNet(BaseNet):
         self.autoencoder_loss = autoencoder_loss
 
         self.coord_units = COORD_UNITS[self.task]
-        if task != 'pendulum':
+        if task != 'pendulum' and task != 'pendulum_scale':
             self.n_objs = self.coord_units//4
         else:
             self.n_objs = 1
@@ -187,7 +188,7 @@ class PhysicsNet(BaseNet):
                     h = tf.reshape(h, [tf.shape(h)[0], self.input_shape[0]*self.input_shape[0]*self.conv_ch])
                     h = tf.layers.dense(h, 200, activation=tf.nn.relu)
                     h = tf.layers.dense(h, 200, activation=tf.nn.relu)
-                    if self.task != 'pendulum':
+                    if self.task != 'pendulum' and self.task != 'pendulum_scale':
                         h = tf.layers.dense(h, 2, activation=None)
                     else:
                         h = tf.layers.dense(h, 1, activation=None)
@@ -267,15 +268,7 @@ class PhysicsNet(BaseNet):
                 out_temp_cont = []
                 for loc, join in zip(tf.split(inp, self.n_objs, -1), tf.split(joint, self.n_objs, 0)):
                     theta = None
-                    if self.task != 'pendulum':
-                        theta0 = tf.tile(c2t([sigma]), [tf.shape(inp)[0]])
-                        theta1 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])
-                        theta2 = (self.conv_input_shape[0]/2-loc[:,0])/tmpl_size*sigma
-                        theta3 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])
-                        theta4 = tf.tile(c2t([sigma]), [tf.shape(inp)[0]])
-                        theta5 = (self.conv_input_shape[0]/2-loc[:,1])/tmpl_size*sigma
-                        theta = tf.stack([theta0, theta1, theta2, theta3, theta4, theta5], axis=1)
-                    else:
+                    if self.task == 'pendulum':
                         theta0 = sigma * tf.math.cos(loc[:, 0])
                         theta1 = sigma * (-tf.math.sin(loc[:, 0]))
                         theta2 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle
@@ -283,6 +276,24 @@ class PhysicsNet(BaseNet):
                         theta4 = sigma * tf.math.cos(loc[:, 0])
                         theta5 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle
                         theta = tf.stack([theta0, theta1, theta2, theta3, theta4, theta5], axis=1)
+                    elif self.task == 'pendulum_scale':
+                        sigma = loc[:, 0]
+                        theta0 = sigma
+                        theta1 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])
+                        theta2 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle
+                        theta3 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])
+                        theta4 = sigma
+                        theta5 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle
+                        theta = tf.stack([theta0, theta1, theta2, theta3, theta4, theta5], axis=1)
+                    else:
+                        theta0 = tf.tile(c2t([sigma]), [tf.shape(inp)[0]])
+                        theta1 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])
+                        theta2 = (self.conv_input_shape[0]/2-loc[:,0])/tmpl_size*sigma
+                        theta3 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])
+                        theta4 = tf.tile(c2t([sigma]), [tf.shape(inp)[0]])
+                        theta5 = (self.conv_input_shape[0]/2-loc[:,1])/tmpl_size*sigma
+                        theta = tf.stack([theta0, theta1, theta2, theta3, theta4, theta5], axis=1)
+
                     out_join = stn(tf.tile(join, [tf.shape(inp)[0], 1, 1, 1]), theta, self.conv_input_shape[:2])
                     out_temp_cont.append(tf.split(out_join, 2, -1))
 
