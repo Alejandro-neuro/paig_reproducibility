@@ -277,7 +277,8 @@ class PhysicsNet(BaseNet):
                         theta5 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle
                         theta = tf.stack([theta0, theta1, theta2, theta3, theta4, theta5], axis=1)
                     elif self.task == 'pendulum_scale':
-                        sigma = loc[:, 0]
+                        d = (10 + 5) * tf.math.sin(loc[:, 0])
+                        sigma = 5 / ((21 - d) ** 2 - 25) ** 0.5
                         theta0 = sigma
                         theta1 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])
                         theta2 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle

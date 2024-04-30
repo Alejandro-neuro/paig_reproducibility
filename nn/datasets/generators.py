@@ -90,14 +90,17 @@ def generate_pendulum_scale_dataset(dest,
                               test_set_size,
                               seq_len,
                               img_size,
-                              radius=3,
+                              r=5,
                               length=10,
-                              max_theta=3*np.pi/4,
-                              ode_steps=10,
+                              focal_length=20,
+                              proj_dist=21,
+                              max_theta=np.pi/4,
+                              ode_steps=5,
                               dt=0.3,
                               mass=5):
     from skimage.draw import disk  # seems to be "disk" now, not "circle"
     from skimage.transform import resize
+    assert proj_dist >= length + 2 * r
 
     def generate_sequence():
         sequence = []
@@ -107,11 +110,13 @@ def generate_pendulum_scale_dataset(dest,
         velocities = []
         for _ in range(seq_len):
             velocities.append(vel)
+            thetas.append(theta)
             frame = np.zeros((img_size, img_size, 3))
-            x = length * np.sin(theta) + img_size // 2
-            thetas.append(x // radius)
 
-            rr, cc = disk((img_size // 2, img_size // 2), x // radius)
+            d = (length + r) * np.sin(theta)
+            radius = r * focal_length / ((proj_dist - d) ** 2 - r ** 2) ** 0.5
+            radius = min(img_size // 2, radius)
+            rr, cc = disk((img_size // 2, img_size // 2), radius)
             frame[rr, cc, :] = (255, 0, 0)
             frame = frame.astype(np.uint8)
 
