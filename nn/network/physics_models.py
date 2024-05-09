@@ -8,7 +8,7 @@ from pprint import pprint
 import inspect
 
 from nn.network.base import BaseNet, OPTIMIZERS
-from nn.network.cells import bouncing_ode_cell, spring_ode_cell, gravity_ode_cell, pendulum_cell
+from nn.network.cells import bouncing_ode_cell, spring_ode_cell, gravity_ode_cell, pendulum_cell, pendulum_scale_cell
 from nn.network.stn import stn
 from nn.network.blocks import unet, shallow_unet, variable_from_network
 from nn.utils.misc import log_metrics
@@ -25,6 +25,7 @@ CELLS = {
     "spring_ode_cell": spring_ode_cell,
     "gravity_ode_cell": gravity_ode_cell,
     "pendulum_cell": pendulum_cell,
+    "pendulum_scale_cell": pendulum_scale_cell,
     "lstm": tf.nn.rnn_cell.LSTMCell
 }
 
@@ -37,7 +38,7 @@ COORD_UNITS = {
     "3bp_color": 12,
     "mnist_spring_color": 8,
     "pendulum": 2,
-    'pendulum_scale': 2,
+    'pendulum_scale': 4,
 }
 
 class PhysicsNet(BaseNet):
@@ -188,7 +189,7 @@ class PhysicsNet(BaseNet):
                     h = tf.reshape(h, [tf.shape(h)[0], self.input_shape[0]*self.input_shape[0]*self.conv_ch])
                     h = tf.layers.dense(h, 200, activation=tf.nn.relu)
                     h = tf.layers.dense(h, 200, activation=tf.nn.relu)
-                    if self.task != 'pendulum' and self.task != 'pendulum_scale':
+                    if self.task != 'pendulum':
                         h = tf.layers.dense(h, 2, activation=None)
                     else:
                         h = tf.layers.dense(h, 1, activation=None)
@@ -277,8 +278,7 @@ class PhysicsNet(BaseNet):
                         theta5 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle
                         theta = tf.stack([theta0, theta1, theta2, theta3, theta4, theta5], axis=1)
                     elif self.task == 'pendulum_scale':
-                        d = (10 + 5) * tf.math.sin(loc[:, 0])
-                        sigma = 5 / ((21 - d) ** 2 - 25) ** 0.5
+                        sigma = loc[:, 1]
                         theta0 = sigma
                         theta1 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])
                         theta2 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle

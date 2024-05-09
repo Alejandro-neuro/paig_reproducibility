@@ -70,7 +70,7 @@ data_file, test_data_file, cell_type, seq_len, test_seq_len, input_steps, pred_s
     "pendulum_scale": (
         "pendulum_scale/pendulum_scale_sl12.npz",
         "pendulum_scale/pendulum_scale_sl30.npz",
-        "pendulum_cell",
+        "pendulum_scale_cell",
         12, 30, 4, 6, 32*32)
 }[FLAGS.task]
 

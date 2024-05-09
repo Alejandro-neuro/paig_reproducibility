@@ -37,6 +37,38 @@ class pendulum_cell(ode_cell):
         return poss, vels
 
 
+class pendulum_scale_cell(ode_cell):
+    def build(self, inputs_shape):
+        if inputs_shape[-1] is None:
+            raise ValueError("Expected inputs.shape[-1] to be known, saw shape: %s"
+                                % str(inputs_shape))
+
+        input_depth = inputs_shape[-1]
+        h_depth = self._num_units
+        assert h_depth == input_depth
+
+        self.dt = self.add_variable("dt_x", shape=[], initializer=tf.constant_initializer(0.3), trainable=False)
+        self.length = self.add_variable("length", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
+        self.mass = self.add_variable("mass", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
+        self.f = self.add_variable("focal", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
+        self.c = self.add_variable("np_dist", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
+        self.r = self.add_variable("radius", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
+        self.built = True
+
+    def call(self, poss, vels):
+        for i in range(10):
+            F = -self.mass * 10 * tf.sin(poss[:, 0])
+            vels = vels[:, 0] + self.dt / 10 * F / self.length  # calculate the angular velocity
+            p_0 = poss[:, 0] + self.dt / 10 * vels
+            d = (self.length + self.r) * tf.math.sin(poss[:, 0])
+            c_max = tf.maximum(self.c, d + self.r + 0.1)  # ensure the projection can still work
+            sigma = self.f * self.r / ((c_max - d) ** 2 - self.r ** 2) ** 0.5
+            p_1 = sigma
+            poss = tf.stack([p_0, p_1], axis=1)
+            v0 = tf.zeros_like(vels)
+            vels = tf.stack([vels, v0], axis=1)
+        return poss, vels
+
 class bouncing_ode_cell(ode_cell):
     """ Assumes there are 2 objects """
 
