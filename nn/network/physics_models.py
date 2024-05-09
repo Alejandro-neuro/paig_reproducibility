@@ -38,7 +38,7 @@ COORD_UNITS = {
     "3bp_color": 12,
     "mnist_spring_color": 8,
     "pendulum": 2,
-    'pendulum_scale': 4,
+    'pendulum_scale': 2,
 }
 
 class PhysicsNet(BaseNet):
@@ -189,7 +189,7 @@ class PhysicsNet(BaseNet):
                     h = tf.reshape(h, [tf.shape(h)[0], self.input_shape[0]*self.input_shape[0]*self.conv_ch])
                     h = tf.layers.dense(h, 200, activation=tf.nn.relu)
                     h = tf.layers.dense(h, 200, activation=tf.nn.relu)
-                    if self.task != 'pendulum':
+                    if self.task != 'pendulum' and self.task != 'pendulum_scale':
                         h = tf.layers.dense(h, 2, activation=None)
                     else:
                         h = tf.layers.dense(h, 1, activation=None)
@@ -253,7 +253,7 @@ class PhysicsNet(BaseNet):
                 # Setting it to log(2.0) makes the attention window half the size, which might make
                 # it easier for the model to discover objects in some cases.
                 # I haven't found this to make a consistent difference though. 
-                logsigma = tf.get_variable("logsigma", shape=[], initializer=tf.constant_initializer(np.log(1.0)), trainable=True)
+                logsigma = tf.get_variable("logsigma", shape=[], initializer=tf.constant_initializer(np.log(1.0)), trainable=False)
                 sigma = tf.exp(logsigma)
 
                 template = variable_from_network([self.n_objs, tmpl_size, tmpl_size, 1])
@@ -278,12 +278,16 @@ class PhysicsNet(BaseNet):
                         theta5 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle
                         theta = tf.stack([theta0, theta1, theta2, theta3, theta4, theta5], axis=1)
                     elif self.task == 'pendulum_scale':
-                        sigma = loc[:, 1]
-                        theta0 = sigma
+                        # hacky (but working) way of initializing the cell before any rollouts happen
+                        # needed for enc_pos in conv_feedforward
+                        if not self.rollout_cell.built:
+                            self.rollout_cell(loc, loc)
+                        scale = self.rollout_cell.get_projection(loc)
+                        theta0 = scale
                         theta1 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])
                         theta2 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle
                         theta3 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])
-                        theta4 = sigma
+                        theta4 = scale
                         theta5 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle
                         theta = tf.stack([theta0, theta1, theta2, theta3, theta4, theta5], axis=1)
                     else:

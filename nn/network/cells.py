@@ -50,24 +50,25 @@ class pendulum_scale_cell(ode_cell):
         self.dt = self.add_variable("dt_x", shape=[], initializer=tf.constant_initializer(0.3), trainable=False)
         self.length = self.add_variable("length", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
         self.mass = self.add_variable("mass", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
-        self.f = self.add_variable("focal", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
-        self.c = self.add_variable("np_dist", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
-        self.r = self.add_variable("radius", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
+        self.f = self.add_variable("focal", shape=[], initializer=tf.constant_initializer(20.0), trainable=False)
+        self.c = self.add_variable("np_dist", shape=[], initializer=tf.constant_initializer(21.0), trainable=False)
+        self.r = self.add_variable("radius", shape=[], initializer=tf.constant_initializer(5.0), trainable=False)
         self.built = True
 
     def call(self, poss, vels):
         for i in range(10):
-            F = -self.mass * 10 * tf.sin(poss[:, 0])
-            vels = vels[:, 0] + self.dt / 10 * F / self.length  # calculate the angular velocity
-            p_0 = poss[:, 0] + self.dt / 10 * vels
-            d = (self.length + self.r) * tf.math.sin(poss[:, 0])
-            c_max = tf.maximum(self.c, d + self.r + 0.1)  # ensure the projection can still work
-            sigma = self.f * self.r / ((c_max - d) ** 2 - self.r ** 2) ** 0.5
-            p_1 = sigma
-            poss = tf.stack([p_0, p_1], axis=1)
-            v0 = tf.zeros_like(vels)
-            vels = tf.stack([vels, v0], axis=1)
+            F = -self.mass * 10 * tf.sin(poss)
+            vels = vels + self.dt / 10 * F / self.length  # calculate the angular velocity
+            poss = poss + self.dt / 10 * vels
         return poss, vels
+
+    def get_projection(self, pos):
+        d = (self.length + self.r) * tf.math.sin(pos[:, 0])
+        c_max = tf.maximum(self.c, d + self.r + 0.1)  # ensure the projection can still work
+        # notice the lack of multiplying by r below
+        # this is because sigma is a scale parameter, i.e. by how much should the radius increase
+        sigma = self.f / ((c_max - d) ** 2 - self.r ** 2) ** 0.5
+        return sigma
 
 class bouncing_ode_cell(ode_cell):
     """ Assumes there are 2 objects """
