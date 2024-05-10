@@ -63,6 +63,10 @@ class pendulum_scale_cell(ode_cell):
         return poss, vels
 
     def get_projection(self, pos):
+        # hacky (but working) way of initializing the cell before any rollouts happen
+        # needed for enc_pos in conv_feedforward
+        if not self.built:
+            self(pos, pos)
         d = (tf.exp(self.length) + tf.exp(self.r)) * tf.math.sin(pos[:, 0])
         c_max = tf.maximum(tf.exp(self.c), d + tf.exp(self.r) + 0.1)  # ensure the projection can still work
         # notice the lack of multiplying by r below

@@ -278,10 +278,6 @@ class PhysicsNet(BaseNet):
                         theta5 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle
                         theta = tf.stack([theta0, theta1, theta2, theta3, theta4, theta5], axis=1)
                     elif self.task == 'pendulum_scale':
-                        # hacky (but working) way of initializing the cell before any rollouts happen
-                        # needed for enc_pos in conv_feedforward
-                        if not self.rollout_cell.built:
-                            self.rollout_cell(loc, loc)
                         scale = self.rollout_cell.get_projection(loc)
                         theta0 = scale
                         theta1 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])
