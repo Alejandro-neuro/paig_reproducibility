@@ -74,6 +74,39 @@ class pendulum_scale_cell(ode_cell):
         sigma = tf.exp(self.f) / ((c_max - d) ** 2 - tf.exp(self.r) ** 2) ** 0.5
         return sigma
 
+
+class pendulum_intensity_cell(ode_cell):
+    def build(self, inputs_shape):
+        if inputs_shape[-1] is None:
+            raise ValueError("Expected inputs.shape[-1] to be known, saw shape: %s"
+                                % str(inputs_shape))
+
+        input_depth = inputs_shape[-1]
+        h_depth = self._num_units
+        assert h_depth == input_depth
+
+        self.dt = self.add_variable("dt_x", shape=[], initializer=tf.constant_initializer(0.3), trainable=False)
+        self.length = self.add_variable("length", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
+        self.mass = self.add_variable("mass", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
+        self.c = self.add_variable("np_dist", shape=[], initializer=tf.constant_initializer(1.0), trainable=True)
+        self.built = True
+
+    def call(self, poss, vels):
+        for i in range(10):
+            F = -self.mass * 10 * tf.sin(poss)
+            vels = vels + self.dt / 10 * F / self.length  # calculate the angular velocity
+            poss = poss + self.dt / 10 * vels
+        return poss, vels
+
+    def get_intensity(self, pos):
+        # hacky (but working) way of initializing the cell before any rollouts happen
+        # needed for enc_pos in conv_feedforward
+        if not self.built:
+            self(pos, pos)
+        d = tf.exp(self.length) * tf.math.sin(pos[:, 0])
+        intensity = (tf.exp(self.c) - self.length) ** 2 / (tf.exp(self.c) - d) ** 2
+        return intensity
+
 class bouncing_ode_cell(ode_cell):
     """ Assumes there are 2 objects """
 

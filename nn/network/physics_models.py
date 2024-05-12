@@ -8,7 +8,7 @@ from pprint import pprint
 import inspect
 
 from nn.network.base import BaseNet, OPTIMIZERS
-from nn.network.cells import bouncing_ode_cell, spring_ode_cell, gravity_ode_cell, pendulum_cell, pendulum_scale_cell
+from nn.network.cells import bouncing_ode_cell, spring_ode_cell, gravity_ode_cell, pendulum_cell, pendulum_scale_cell, pendulum_intensity_cell
 from nn.network.stn import stn
 from nn.network.blocks import unet, shallow_unet, variable_from_network
 from nn.utils.misc import log_metrics
@@ -26,6 +26,7 @@ CELLS = {
     "gravity_ode_cell": gravity_ode_cell,
     "pendulum_cell": pendulum_cell,
     "pendulum_scale_cell": pendulum_scale_cell,
+    "pendulum_intensity_cell": pendulum_intensity_cell,
     "lstm": tf.nn.rnn_cell.LSTMCell
 }
 
@@ -39,6 +40,7 @@ COORD_UNITS = {
     "mnist_spring_color": 8,
     "pendulum": 2,
     'pendulum_scale': 2,
+    'pendulum_intensity': 2,
 }
 
 class PhysicsNet(BaseNet):
@@ -96,7 +98,7 @@ class PhysicsNet(BaseNet):
         self.autoencoder_loss = autoencoder_loss
 
         self.coord_units = COORD_UNITS[self.task]
-        if task != 'pendulum' and task != 'pendulum_scale':
+        if 'pendulum' not in task:
             self.n_objs = self.coord_units//4
         else:
             self.n_objs = 1
@@ -189,7 +191,7 @@ class PhysicsNet(BaseNet):
                     h = tf.reshape(h, [tf.shape(h)[0], self.input_shape[0]*self.input_shape[0]*self.conv_ch])
                     h = tf.layers.dense(h, 200, activation=tf.nn.relu)
                     h = tf.layers.dense(h, 200, activation=tf.nn.relu)
-                    if self.task != 'pendulum' and self.task != 'pendulum_scale':
+                    if 'pendulum' not in self.task:
                         h = tf.layers.dense(h, 2, activation=None)
                     else:
                         h = tf.layers.dense(h, 1, activation=None)
@@ -286,6 +288,14 @@ class PhysicsNet(BaseNet):
                         theta4 = scale
                         theta5 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle
                         theta = tf.stack([theta0, theta1, theta2, theta3, theta4, theta5], axis=1)
+                    elif self.task == 'pendulum_intensity':
+                        theta0 = tf.tile(c2t([sigma]), [tf.shape(inp)[0]])
+                        theta1 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])
+                        theta2 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle
+                        theta3 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])
+                        theta4 = tf.tile(c2t([sigma]), [tf.shape(inp)[0]])
+                        theta5 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])  # center of attention in the middle
+                        theta = tf.stack([theta0, theta1, theta2, theta3, theta4, theta5], axis=1)
                     else:
                         theta0 = tf.tile(c2t([sigma]), [tf.shape(inp)[0]])
                         theta1 = tf.tile(c2t([0.0]), [tf.shape(inp)[0]])
@@ -295,7 +305,14 @@ class PhysicsNet(BaseNet):
                         theta5 = (self.conv_input_shape[0]/2-loc[:,1])/tmpl_size*sigma
                         theta = tf.stack([theta0, theta1, theta2, theta3, theta4, theta5], axis=1)
 
-                    out_join = stn(tf.tile(join, [tf.shape(inp)[0], 1, 1, 1]), theta, self.conv_input_shape[:2])
+                    join_tiled = tf.tile(join, [tf.shape(inp)[0], 1, 1, 1])
+                    if self.task == 'pendulum_intensity':
+                        intensity = self.rollout_cell.get_intensity(loc)
+                        intensity = tf.reshape(intensity, [batch_size, 1, 1, 1])
+                        intensity = tf.broadcast_to(intensity, tf.shape(join_tiled))
+                        join_tiled = join_tiled * intensity
+
+                    out_join = stn(join_tiled, theta, self.conv_input_shape[:2])
                     out_temp_cont.append(tf.split(out_join, 2, -1))
 
                 background_content = variable_from_network([1]+self.input_shape)
