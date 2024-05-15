@@ -425,7 +425,7 @@ class PhysicsNet(BaseNet):
 
             if hasattr(self, 'pos_vel_seq'):
                 pos = pos_vel_seq[i, :, 0]
-                actual_pos = batch_x['pos'][i, self.input_steps-1:]
+                actual_pos = batch_x['pos'][i, self.input_steps-1:, 0]
 
                 fig, ax = plt.subplots()
                 ax.plot(pos, label='Predicted')
@@ -436,7 +436,7 @@ class PhysicsNet(BaseNet):
                 fig.savefig(os.path.join(self.save_dir, f"angle_{i}.jpg"))
 
                 pos = pos_vel_seq[i, :, 1]
-                actual_pos = batch_x['vel'][i, self.input_steps - 1:]
+                actual_pos = batch_x['vel'][i, self.input_steps - 1:, 0]
 
                 fig, ax = plt.subplots()
                 ax.plot(pos, label='Predicted')

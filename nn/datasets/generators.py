@@ -243,8 +243,7 @@ def generate_pendulum_intensity_dataset(dest,
     fig.savefig(dest.split(".")[0] + "_samples.jpg")
 
 
-generate_pendulum_intensity_dataset('../../data/datasets/pendulum_intensity/pendulum_intensity_sl12.npz',
-                          10000, 1000, 1000, 12, 32)
+
 
 
 def generate_bouncing_ball_dataset(dest,
@@ -624,7 +623,6 @@ def generate_spring_mnist_dataset(dest,
     # A single CIFAR image is used for background
     # Only 2 mnist digits are used
     import tensorflow as tf
-    from skimage.draw import circle
     from skimage.transform import resize
 
     scale = 5
@@ -648,6 +646,8 @@ def generate_spring_mnist_dataset(dest,
         collision = True
         while collision == True:
             seq = []
+            positions = []
+            velocities = []
 
             cm_pos = np.random.rand(2)
             cm_pos[0] = radius+equil + (img_size[0]-2*(radius+equil))*cm_pos[0]
@@ -665,6 +665,8 @@ def generate_spring_mnist_dataset(dest,
             vels = np.array(vels)
 
             for i in range(seq_len):
+                positions.append(poss)
+                velocities.append(vels)
                 if cifar_background:
                     frame = cifar_img
                     if not color:
@@ -681,7 +683,6 @@ def generate_spring_mnist_dataset(dest,
 
 
                 for j, pos in enumerate(poss):
-                    rr, cc = circle(int(pos[1]*scale), int(pos[0]*scale), radius*scale, scaled_img_size)
                     frame_coords = np.array([[max(0, (pos[1]-radius)*scale), min(scaled_img_size[1], (pos[1]+radius)*scale)],
                                              [max(0, (pos[0]-radius)*scale), min(scaled_img_size[0], (pos[0]+radius)*scale)]])
                     digit_coords = np.array([[max(0, (radius-pos[1])*scale), min(2*radius*scale, scaled_img_size[1]-(pos[1]-radius)*scale)],
@@ -728,20 +729,32 @@ def generate_spring_mnist_dataset(dest,
                 if collision:
                     break
 
-        return seq
+        return seq, positions, velocities
 
     sequences = []
+    poss = []
+    vels = []
     for i in range(train_set_size+valid_set_size+test_set_size):
         if i % 100 == 0:
             print(i)
-        sequences.append(generate_sequence())
+        seq, pos, vel = generate_sequence()
+        sequences.append(seq)
+        poss.append(pos)
+        vels.append(vel)
     sequences = np.array(sequences, dtype=np.uint8)
+    poss = np.array(poss, dtype=np.float32)
+    vels = np.array(vels, dtype=np.float32)
 
     np.savez_compressed(dest,
-                        train_x=sequences[:train_set_size],
-                        valid_x=sequences[train_set_size:train_set_size+valid_set_size],
-                        test_x=sequences[train_set_size+valid_set_size:])
-    print("Saved to file %s" % dest)
+                        train_x={'frames': sequences[:train_set_size],
+                                 'pos': poss[:train_set_size],
+                                 'vel': vels[:train_set_size]},
+                        valid_x={'frames': sequences[train_set_size:train_set_size + valid_set_size],
+                                 'pos': poss[train_set_size:train_set_size + valid_set_size],
+                                 'vel': vels[train_set_size:train_set_size + valid_set_size]},
+                        test_x={'frames': sequences[train_set_size + valid_set_size:],
+                                'pos': poss[train_set_size + valid_set_size:],
+                                'vel': vels[train_set_size + valid_set_size:]})
 
     # Save 10 samples
     result = gallery(np.concatenate(sequences[:10]/255), ncols=sequences.shape[1])
@@ -754,6 +767,9 @@ def generate_spring_mnist_dataset(dest,
     fig.tight_layout()
     fig.savefig(dest.split(".")[0]+"_samples.jpg")
 
+
+generate_spring_mnist_dataset('../../data/datasets/mnist_spring_color/mnist_spring_color_sl30.npz',
+                          10000, 1000, 1000, 30, color=True, cifar_background=True)
 
 def generate_3_body_problem_dataset(dest,
                                   train_set_size,

@@ -58,10 +58,10 @@ data_file, test_data_file, cell_type, seq_len, test_seq_len, input_steps, pred_s
         "gravity_ode_cell",
         20, 40, 4, 12, 36*36),
     "mnist_spring_color": (
-        "mnist_spring_color/color_mnist_spring_vx8_vy8_sl12_r2_k2_e12.npz", 
-        "mnist_spring_color/color_mnist_spring_vx8_vy8_sl30_r2_k2_e12.npz", 
+        "mnist_spring_color/mnist_spring_color_sl12.npz",
+        "mnist_spring_color/mnist_spring_color_sl30.npz",
         "spring_ode_cell",
-        12, 30, 3, 7, 64*64),
+        12, 30, 3, 7, 32*32),
     "pendulum": (
         "pendulum/pendulum_sl12.npz",
         "pendulum/pendulum_sl30.npz",
