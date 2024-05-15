@@ -154,8 +154,8 @@ class spring_ode_cell(ode_cell):
         assert h_depth == input_depth
 
         self.dt = self.add_variable("dt_x", shape=[], initializer=tf.constant_initializer(0.3), trainable=False)
-        self.k = self.add_variable("log_k", shape=[], initializer=tf.constant_initializer(np.log(1.0)), trainable=True)
-        self.equil = self.add_variable("log_l", shape=[], initializer=tf.constant_initializer(np.log(1.0)), trainable=True)
+        self.k = self.add_variable("log_k", shape=[], initializer=tf.constant_initializer(np.log(10.0)), trainable=True)
+        self.equil = self.add_variable("log_l", shape=[], initializer=tf.constant_initializer(np.log(10.0)), trainable=True)
         self.built = True
 
     def call(self, poss, vels):
