@@ -196,7 +196,8 @@ class PhysicsNet(BaseNet):
                     else:
                         h = tf.layers.dense(h, 1, activation=None)
                     h = tf.concat(tf.split(h, self.n_objs, 0), axis=1)
-                    # h = tf.tanh(h)*(self.conv_input_shape[0]/2)+(self.conv_input_shape[0]/2)
+                    if 'pendulum' not in self.task:
+                        h = tf.tanh(h)*(self.conv_input_shape[0]/2)+(self.conv_input_shape[0]/2)
                 else:
                     h = inp
                     h = unet(h, 16, self.n_objs, upsamp=True)
@@ -214,7 +215,8 @@ class PhysicsNet(BaseNet):
                     h = tf.layers.dense(h, 200, activation=tf.nn.relu)
                     h = tf.layers.dense(h, 2, activation=None)
                     h = tf.concat(tf.split(h, self.n_objs, 0), axis=1)
-                    # h = tf.tanh(h)*(self.conv_input_shape[0]/2)+(self.conv_input_shape[0]/2)
+                    if 'pendulum' not in self.task:
+                        h = tf.tanh(h)*(self.conv_input_shape[0]/2)+(self.conv_input_shape[0]/2)
                 return h
 
     def vel_encoder(self, inp, scope=None, reuse=tf.compat.v1.AUTO_REUSE):
